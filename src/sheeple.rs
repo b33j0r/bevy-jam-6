@@ -179,7 +179,6 @@ fn clear_on_ground(
 ) {
     for (e, mut vel) in &mut query {
         commands.entity(e).remove::<OnGround>();
-        vel.x = -30.0;
     }
 }
 

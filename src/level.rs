@@ -1,4 +1,5 @@
 // levels.rs
+use crate::camera::CameraFollowTarget;
 use crate::states::States;
 use crate::utility::despawn;
 use avian3d::prelude::*;
@@ -82,8 +83,6 @@ fn spawn_level(
     mut meshes: ResMut<Assets<Mesh>>,
     mut mats: ResMut<Assets<StandardMaterial>>,
 ) {
-    let camera_offset_y = 10; // offset for camera height
-
     // 1) Load PNG
     let idx = level.0;
     let path = format!("assets/levels/level{}.png", idx);
@@ -101,10 +100,16 @@ fn spawn_level(
         }
     }
     let (entr_x, entr_y) = entrance_px.expect("No entrance (black pixel) found in level PNG");
+    let entrance = Vec3::new(
+        entr_x as f32 + 0.5,       // center of pixel
+        (h - entr_y) as f32 + 0.5, // flip y-axis and apply offset
+        0.0,
+    );
+    commands.insert_resource(CameraFollowTarget(Some(entrance)));
 
     // compute world offset so entrance → (0,0)
-    let off_x = entr_x as f32 + 0.5;
-    let off_y = (h - entr_y - camera_offset_y) as f32 + 1.0;
+    let off_x = 0.0;
+    let off_y = 0.0;
 
     // 3) Prepare mesh & materials
     let cube = meshes.add(Cuboid::new(1.0, 1.0, 1.0).mesh());
