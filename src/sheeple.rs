@@ -89,6 +89,7 @@ fn spawn_sheeple(
         },
         Collider::capsule(0.25, 1.0),
         GlobalTransform::default(),
+        InheritedVisibility::default(),
         RigidBody::Dynamic,
         LockedAxes::new().lock_rotation_x().lock_rotation_z(),
         children![(

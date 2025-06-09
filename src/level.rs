@@ -7,6 +7,8 @@ use bevy::pbr::CascadeShadowConfigBuilder;
 use bevy::prelude::*;
 use image::GenericImageView;
 
+const BLOCK_SIZE: f32 = 0.5; // size of ground/lava blocks
+
 // ───────────────────────────────────────────── components
 #[derive(Component)]
 #[require(ActiveCollisionHooks::MODIFY_CONTACTS)]
@@ -91,6 +93,13 @@ fn spawn_level(
         .to_rgba8();
     let (w, h) = img.dimensions();
 
+    let middle = Vec3::new(
+        (w as f32 * BLOCK_SIZE) / 2.0,
+        (h as f32 * BLOCK_SIZE) / 2.0,
+        0.0,
+    );
+    commands.insert_resource(CameraFollowTarget(Some(middle)));
+
     // 2) Find entrance pixel
     let mut entrance_px: Option<(u32, u32)> = None;
     for (x, y, pixel) in img.enumerate_pixels() {
@@ -101,18 +110,17 @@ fn spawn_level(
     }
     let (entr_x, entr_y) = entrance_px.expect("No entrance (black pixel) found in level PNG");
     let entrance = Vec3::new(
-        entr_x as f32 + 0.5,       // center of pixel
-        (h - entr_y) as f32 + 0.5, // flip y-axis and apply offset
+        (entr_x as f32 + 0.5) * BLOCK_SIZE,
+        (h - entr_y) as f32 * BLOCK_SIZE + 0.5 * BLOCK_SIZE,
         0.0,
     );
-    commands.insert_resource(CameraFollowTarget(Some(entrance)));
 
     // compute world offset so entrance → (0,0)
     let off_x = 0.0;
     let off_y = 0.0;
 
     // 3) Prepare mesh & materials
-    let cube = meshes.add(Cuboid::new(1.0, 1.0, 1.0).mesh());
+    let cube = meshes.add(Cuboid::new(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE).mesh());
     let mat_gnd = mats.add(Color::srgb(0.2, 0.8, 0.2));
     let mat_lava = mats.add(Color::srgb(0.8, 0.2, 0.2));
     let mat_spawn = mats.add(Color::srgb(0.9, 0.9, 0.2));
@@ -122,8 +130,8 @@ fn spawn_level(
     for (x, y, pixel) in img.enumerate_pixels() {
         let [r, g, b, a] = pixel.0;
         // world coords before offset
-        let wx = x as f32 + 0.5;
-        let wy = (h - y) as f32 + 0.5;
+        let wx = (x as f32 + 0.5) * BLOCK_SIZE;
+        let wy = (h - y) as f32 * BLOCK_SIZE + 0.5 * BLOCK_SIZE;
 
         // apply offset
         let px = wx - off_x;
@@ -135,7 +143,7 @@ fn spawn_level(
                 commands.spawn((
                     Ground,
                     RigidBody::Static,
-                    Collider::cuboid(1.0, 1.0, 1.0),
+                    Collider::cuboid(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE),
                     Mesh3d(cube.clone()),
                     MeshMaterial3d(mat_gnd.clone()),
                     Transform::from_xyz(px, py_base, 0.0),
